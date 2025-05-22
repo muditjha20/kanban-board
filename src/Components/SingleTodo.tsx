@@ -1,93 +1,143 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import { MdDone } from "react-icons/md";
-import { Todo } from "../model";
 import { Draggable } from "@hello-pangea/dnd";
+import { Task, BoardData } from "../types";
+import axios from "axios";
 
-const SingleTodo: React.FC<{
+interface Props {
+  task: Task;
   index: number;
-  todo: Todo;
-  todos: Array<Todo>;
-  setTodos: React.Dispatch<React.SetStateAction<Array<Todo>>>;
-  setCompletedTodos?: React.Dispatch<React.SetStateAction<Array<Todo>>>; // optional
-}> = ({ index, todo, todos, setTodos, setCompletedTodos }) => {
-  const [edit, setEdit] = useState<boolean>(false);
-  const [editTodo, setEditTodo] = useState<string>(todo.todo);
+  columnId: string;
+  boardData: BoardData;
+  setBoardData: React.Dispatch<React.SetStateAction<BoardData>>;
+}
 
+const SingleTodo: React.FC<Props> = ({
+  task,
+  index,
+  columnId,
+  boardData,
+  setBoardData,
+}) => {
+  const [edit, setEdit] = useState(false);
+  const [editValue, setEditValue] = useState(task.title);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (edit) inputRef.current?.focus();
   }, [edit]);
 
-  const handleEdit = (e: React.FormEvent, id: number) => {
+  const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setTodos(
-      todos.map((todo) => (todo.id === id ? { ...todo, todo: editTodo } : todo))
-    );
+    const updatedTask = { ...task, title: editValue };
+
+    setBoardData({
+      ...boardData,
+      tasks: {
+        ...boardData.tasks,
+        [task.id]: updatedTask,
+      },
+    });
+
     setEdit(false);
   };
 
-  const handleDelete = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+  const handleDelete = () => {
+    axios
+      .delete(`http://localhost:5039/api/tasks/${task.id}`)
+      .then(() => {
+        const newTasks = { ...boardData.tasks };
+        delete newTasks[task.id];
+
+        const newTaskIds = boardData.columns[columnId].taskIds.filter(
+          (id) => id !== task.id
+        );
+        const newColumn = {
+          ...boardData.columns[columnId],
+          taskIds: newTaskIds,
+        };
+
+        setBoardData({
+          ...boardData,
+          tasks: newTasks,
+          columns: { ...boardData.columns, [columnId]: newColumn },
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to delete task", err);
+      });
   };
 
-  const handleDone = (id: number) => {
-    const targetTodo = todos.find((t) => t.id === id);
-    if (!targetTodo) return;
+  const handleDone = (id: string) => {
+    const updatedTask = {
+      title: boardData.tasks[id].title,
+      isDone: true,
+      columnId: 3,
+    };
 
-    const updatedTodos = todos.filter((t) => t.id !== id);
+    axios
+      .put(`http://localhost:5039/api/tasks/${id}`, updatedTask)
+      .then(() => {
+        setBoardData((prev) => {
+          const newTasks = { ...prev.tasks };
+          newTasks[id].isDone = true;
 
-    if (setCompletedTodos && !targetTodo.isDone) {
-      // Move to completed list
-      setCompletedTodos((prev) => [...prev, { ...targetTodo, isDone: true }]);
-    } else {
-      // Toggle back to active if needed (optional behavior)
-      setTodos((prev) => [...prev, { ...targetTodo, isDone: false }]);
-      return;
-    }
+          const newColumns = { ...prev.columns };
+          for (const colKey of Object.keys(newColumns)) {
+            newColumns[colKey].taskIds = newColumns[colKey].taskIds.filter(
+              (taskId) => taskId !== id
+            );
+          }
 
-    setTodos(updatedTodos);
+          newColumns["column-3"].taskIds.unshift(id);
+
+          return {
+            ...prev,
+            tasks: newTasks,
+            columns: newColumns,
+          };
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to mark task as done", err);
+      });
   };
 
   return (
-    <Draggable draggableId={todo.id.toString()} index={index}>
-      {(provided, snapshot) => (
+    <Draggable draggableId={task.id} index={index}>
+      {(provided) => (
         <form
-          onSubmit={(e) => handleEdit(e, todo.id)}
+          className="todos__single"
+          ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          ref={provided.innerRef}
-          className={`todos__single ${snapshot.isDragging ? "drag" : ""}`}
+          onSubmit={handleEditSubmit}
         >
           {edit ? (
             <input
-              value={editTodo}
-              onChange={(e) => setEditTodo(e.target.value)}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
               className="todos__single--text"
               ref={inputRef}
             />
-          ) : todo.isDone ? (
-            <s className="todos__single--text">{todo.todo}</s>
+          ) : task.isDone ? (
+            <s className="todos__single--text">{task.title}</s>
           ) : (
-            <span className="todos__single--text">{todo.todo}</span>
+            <span className="todos__single--text">{task.title}</span>
           )}
+
           <div>
-            <span
-              className="icon"
-              onClick={() => {
-                if (!edit && !todo.isDone) {
-                  setEdit(!edit);
-                }
-              }}
-            >
-              <AiFillEdit />
-            </span>
-            <span className="icon" onClick={() => handleDelete(todo.id)}>
+            {!task.isDone && (
+              <span className="icon" onClick={() => !edit && setEdit(true)}>
+                <AiFillEdit />
+              </span>
+            )}
+            <span className="icon" onClick={handleDelete}>
               <AiFillDelete />
             </span>
-            {!todo.isDone && (
-              <span className="icon" onClick={() => handleDone(todo.id)}>
+            {!task.isDone && (
+              <span className="icon" onClick={() => handleDone(task.id)}>
                 <MdDone />
               </span>
             )}

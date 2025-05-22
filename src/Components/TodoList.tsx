@@ -1,94 +1,58 @@
 import React from "react";
-import { Todo } from "../model";
-import SingleTodo from "./SingleTodo";
 import { Droppable } from "@hello-pangea/dnd";
+import { BoardData, Task, Column } from "../types";
+import SingleTodo from "./SingleTodo";
+import AddColumn from "./AddColumn";
 
-interface props {
-  todos: Array<Todo>;
-  setTodos: React.Dispatch<React.SetStateAction<Array<Todo>>>;
-  inProgressTodos: Array<Todo>;
-  setInProgressTodos: React.Dispatch<React.SetStateAction<Array<Todo>>>;
-  CompletedTodos: Array<Todo>;
-  setCompletedTodos: React.Dispatch<React.SetStateAction<Array<Todo>>>;
+interface Props {
+  boardData: BoardData;
+  setBoardData: React.Dispatch<React.SetStateAction<BoardData>>;
 }
 
-const TodoList: React.FC<props> = ({
-  todos,
-  setTodos,
-  inProgressTodos,
-  setInProgressTodos,
-  CompletedTodos,
-  setCompletedTodos,
-}) => {
+const TodoList: React.FC<Props> = ({ boardData, setBoardData }) => {
   return (
     <div className="container">
-      <Droppable droppableId="TodosList">
-        {(provided, snapshot) => (
-          <div
-            className={`todos ${snapshot.isDraggingOver ? "dragactive" : ""}`}
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-          >
-            <span className="todos__heading">Active Tasks</span>
-            {todos?.map((todo, index) => (
-              <SingleTodo
-                index={index}
-                todos={todos}
-                todo={todo}
-                key={todo.id}
-                setTodos={setTodos}
-              />
-            ))}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
+      {boardData.columnOrder.map((columnId) => {
+        const column = boardData.columns[columnId];
+        const tasks = column.taskIds.map((taskId) => boardData.tasks[taskId]);
 
-      <Droppable droppableId="InProgressList">
-        {(provided, snapshot) => (
-          <div
-            className={`todos ${snapshot.isDraggingOver ? "draginprogress" : ""}`}
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-          >
-            <span className="todos__heading">In Progress</span>
-            {inProgressTodos?.map((todo, index) => (
-              <SingleTodo
-                index={index}
-                todos={inProgressTodos}
-                todo={todo}
-                key={todo.id}
-                setTodos={setInProgressTodos}
-              />
-            ))}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
+        return (
+          <Droppable droppableId={column.id} key={column.id}>
+            {(provided, snapshot) => {
+              let dragClass = "";
+              if (snapshot.isDraggingOver) {
+                if (column.title.includes("Active")) dragClass = "dragactive";
+                else if (column.title.includes("Progress")) dragClass = "draginprogress";
+                else if (column.title.includes("Completed")) dragClass = "dragcomplete";
+              } else if (column.title.includes("Completed")) {
+                dragClass = "remove";
+              }
 
-      <Droppable droppableId="TodosRemove">
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={`todos  ${
-              snapshot.isDraggingOver ? "dragcomplete" : "remove"
-            }`}
-          >
-            <span className="todos__heading">Completed Tasks</span>
-            {CompletedTodos?.map((todo, index) => (
-              <SingleTodo
-                index={index}
-                todos={CompletedTodos}
-                todo={todo}
-                key={todo.id}
-                setTodos={setCompletedTodos}
-              />
-            ))}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
+              return (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`todos ${dragClass}`}
+                >
+                  <span className="todos__heading">{column.title}</span>
+                  {tasks.map((task, index) => (
+                    <SingleTodo
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      columnId={column.id}
+                      boardData={boardData}
+                      setBoardData={setBoardData}
+                    />
+                  ))}
+                  {provided.placeholder}
+                </div>
+              );
+            }}
+          </Droppable>
+        );
+      })}
+      {/* <AddColumn boardData={boardData} setBoardData={setBoardData} /> */}
     </div>
   );
 };

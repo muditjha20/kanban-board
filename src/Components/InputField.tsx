@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
-import "./styles.css";
+import "../styles.css";
+
 
 interface props {
   todo: string;
