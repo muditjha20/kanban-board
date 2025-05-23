@@ -27,7 +27,7 @@ const App: React.FC = () => {
 
     const task = { title: taskTitle, isDone: false, columnId: 1 };
 
-    axios.post("http://localhost:5039/api/tasks", task)
+    axios.post("https://kanban-backend-2vbh.onrender.com/api/tasks", task)
       .then(res => {
         const added = res.data;
         const newId = String(added.id);
@@ -98,12 +98,12 @@ const App: React.FC = () => {
       columnId: Number(destCol.id.split("-")[1]),
     };
 
-    axios.put(`http://localhost:5039/api/tasks/${draggableId}`, updatedTask)
+    axios.put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${draggableId}`, updatedTask)
       .catch(err => console.error("Failed to update task column", err));
   };
 
   useEffect(() => {
-    axios.get("http://localhost:5039/api/tasks")
+    axios.get("https://kanban-backend-2vbh.onrender.com/api/tasks")
       .then(res => {
         const tasks = res.data;
         const taskMap: BoardData["tasks"] = {};

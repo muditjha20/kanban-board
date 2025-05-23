@@ -45,7 +45,7 @@ const SingleTodo: React.FC<Props> = ({
 
   const handleDelete = () => {
     axios
-      .delete(`http://localhost:5039/api/tasks/${task.id}`)
+      .delete(`https://kanban-backend-2vbh.onrender.com/api/tasks/${task.id}`)
       .then(() => {
         const newTasks = { ...boardData.tasks };
         delete newTasks[task.id];
@@ -77,7 +77,7 @@ const SingleTodo: React.FC<Props> = ({
     };
 
     axios
-      .put(`http://localhost:5039/api/tasks/${id}`, updatedTask)
+      .put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${id}`, updatedTask)
       .then(() => {
         setBoardData((prev) => {
           const newTasks = { ...prev.tasks };
