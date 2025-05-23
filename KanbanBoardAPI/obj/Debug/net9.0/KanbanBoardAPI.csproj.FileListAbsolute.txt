@@ -167,3 +167,5 @@ F:\Y2S2\Taskify\taskify\KanbanBoardAPI\obj\Debug\net9.0\refint\KanbanBoardAPI.dl
 F:\Y2S2\Taskify\taskify\KanbanBoardAPI\obj\Debug\net9.0\KanbanBoardAPI.pdb
 F:\Y2S2\Taskify\taskify\KanbanBoardAPI\obj\Debug\net9.0\KanbanBoardAPI.genruntimeconfig.cache
 F:\Y2S2\Taskify\taskify\KanbanBoardAPI\obj\Debug\net9.0\ref\KanbanBoardAPI.dll
+F:\Y2S2\Taskify\taskify\KanbanBoardAPI\bin\Debug\net9.0\Npgsql.dll
+F:\Y2S2\Taskify\taskify\KanbanBoardAPI\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
