@@ -7,6 +7,7 @@ import TodoList from "./Components/TodoList";
 import InputField from "./Components/InputField";
 import { BoardData } from "./types";
 import axios from "axios";
+import { connection } from "./signalr"; 
 
 const App: React.FC = () => {
   const [taskTitle, setTaskTitle] = useState<string>("");
@@ -102,6 +103,40 @@ const App: React.FC = () => {
       .catch(err => console.error("Failed to update task column", err));
   };
 
+  // Setup SignalR connection
+  useEffect(() => {
+    connection
+      .start()
+      .then(() => {
+        console.log("SignalR Connected");
+
+        connection.on("ReceiveTaskUpdate", (updatedTask) => {
+          const id = String(updatedTask.id);
+
+          setBoardData(prev => {
+            const newTasks = { ...prev.tasks, [id]: updatedTask };
+
+            const newColumns = { ...prev.columns };
+            for (const colId of Object.keys(newColumns)) {
+              newColumns[colId].taskIds = newColumns[colId].taskIds.filter(tid => tid !== id);
+            }
+
+            const colKey = `column-${updatedTask.columnId}`;
+            if (newColumns[colKey]) {
+              newColumns[colKey].taskIds.unshift(id);
+            }
+
+            return {
+              ...prev,
+              tasks: newTasks,
+              columns: newColumns,
+            };
+          });
+        });
+      })
+      .catch(err => console.error("SignalR connection error", err));
+  }, []);
+
   useEffect(() => {
     axios.get("https://kanban-backend-2vbh.onrender.com/api/tasks")
       .then(res => {
@@ -120,7 +155,11 @@ const App: React.FC = () => {
           colMap[colKey]?.taskIds.push(id);
         }
 
-        setBoardData({ tasks: taskMap, columns: colMap, columnOrder: ["column-1", "column-2", "column-3"] });
+        setBoardData({
+          tasks: taskMap,
+          columns: colMap,
+          columnOrder: ["column-1", "column-2", "column-3"],
+        });
       })
       .catch(err => console.error("Error fetching tasks", err));
   }, []);
