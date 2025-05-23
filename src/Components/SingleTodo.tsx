@@ -32,15 +32,23 @@ const SingleTodo: React.FC<Props> = ({
     e.preventDefault();
     const updatedTask = { ...task, title: editValue };
 
-    setBoardData({
-      ...boardData,
+    setBoardData((prev) => ({
+      ...prev,
       tasks: {
-        ...boardData.tasks,
+        ...prev.tasks,
         [task.id]: updatedTask,
       },
-    });
+    }));
 
     setEdit(false);
+
+    axios.put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${task.id}`, {
+      title: editValue,
+      isDone: task.isDone,
+      columnId: Number(columnId.split("-")[1]),
+    }).catch((err) => {
+      console.error("Failed to update task title", err);
+    });
   };
 
   const handleDelete = () => {
@@ -53,55 +61,52 @@ const SingleTodo: React.FC<Props> = ({
         const newTaskIds = boardData.columns[columnId].taskIds.filter(
           (id) => id !== task.id
         );
-        const newColumn = {
-          ...boardData.columns[columnId],
-          taskIds: newTaskIds,
-        };
 
-        setBoardData({
-          ...boardData,
+        setBoardData((prev) => ({
+          ...prev,
           tasks: newTasks,
-          columns: { ...boardData.columns, [columnId]: newColumn },
-        });
+          columns: {
+            ...prev.columns,
+            [columnId]: {
+              ...prev.columns[columnId],
+              taskIds: newTaskIds,
+            },
+          },
+        }));
       })
-      .catch((err) => {
-        console.error("Failed to delete task", err);
-      });
+      .catch((err) => console.error("Failed to delete task", err));
   };
 
   const handleDone = (id: string) => {
-    const updatedTask = {
-      title: boardData.tasks[id].title,
-      isDone: true,
-      columnId: 3,
-    };
+    //  update frontend first
+    setBoardData((prev) => {
+      const updatedTasks = { ...prev.tasks };
+      updatedTasks[id].isDone = true;
 
+      const newColumns = { ...prev.columns };
+      for (const colKey of Object.keys(newColumns)) {
+        newColumns[colKey].taskIds = newColumns[colKey].taskIds.filter(
+          (taskId) => taskId !== id
+        );
+      }
+
+      newColumns["column-3"].taskIds.unshift(id);
+
+      return {
+        ...prev,
+        tasks: updatedTasks,
+        columns: newColumns,
+      };
+    });
+
+    // Sync with backend
     axios
-      .put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${id}`, updatedTask)
-      .then(() => {
-        setBoardData((prev) => {
-          const newTasks = { ...prev.tasks };
-          newTasks[id].isDone = true;
-
-          const newColumns = { ...prev.columns };
-          for (const colKey of Object.keys(newColumns)) {
-            newColumns[colKey].taskIds = newColumns[colKey].taskIds.filter(
-              (taskId) => taskId !== id
-            );
-          }
-
-          newColumns["column-3"].taskIds.unshift(id);
-
-          return {
-            ...prev,
-            tasks: newTasks,
-            columns: newColumns,
-          };
-        });
+      .put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${id}`, {
+        title: boardData.tasks[id].title,
+        isDone: true,
+        columnId: 3,
       })
-      .catch((err) => {
-        console.error("Failed to mark task as done", err);
-      });
+      .catch((err) => console.error("Failed to mark task as done", err));
   };
 
   return (
@@ -116,10 +121,10 @@ const SingleTodo: React.FC<Props> = ({
         >
           {edit ? (
             <input
+              ref={inputRef}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               className="todos__single--text"
-              ref={inputRef}
             />
           ) : task.isDone ? (
             <s className="todos__single--text">{task.title}</s>
@@ -129,7 +134,7 @@ const SingleTodo: React.FC<Props> = ({
 
           <div>
             {!task.isDone && (
-              <span className="icon" onClick={() => !edit && setEdit(true)}>
+              <span className="icon" onClick={() => setEdit(true)}>
                 <AiFillEdit />
               </span>
             )}
