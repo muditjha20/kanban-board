@@ -7,7 +7,7 @@ import TodoList from "./Components/TodoList";
 import InputField from "./Components/InputField";
 import { BoardData } from "./types";
 import axios from "axios";
-import { connection } from "./signalr"; 
+import { connection } from "./signalr";
 
 const App: React.FC = () => {
   const [taskTitle, setTaskTitle] = useState<string>("");
@@ -26,40 +26,26 @@ const App: React.FC = () => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
 
-    const task = { title: taskTitle, isDone: false, columnId: 1 };
+    const task = {
+      title: taskTitle,
+      isDone: false,
+      columnId: 1,
+      description: "",
+      tags: "",
+      dueDate: null,
+    };
 
-    axios.post("https://kanban-backend-2vbh.onrender.com/api/tasks", task)
-      .then(res => {
-        const added = res.data;
-        const newId = String(added.id);
-
-        setBoardData(prev => ({
-          ...prev,
-          tasks: {
-            ...prev.tasks,
-            [newId]: { id: newId, title: added.title, isDone: false },
-          },
-          columns: {
-            ...prev.columns,
-            "column-1": {
-              ...prev.columns["column-1"],
-              taskIds: [newId, ...prev.columns["column-1"].taskIds],
-            },
-          },
-        }));
-
-        setTaskTitle("");
-      })
-      .catch(err => console.error("Error adding task", err));
+    axios
+      .post("https://kanban-backend-2vbh.onrender.com/api/tasks", task)
+      .then(() => setTaskTitle(""))
+      .catch((err) => console.error("Error adding task", err));
   };
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
 
-    if (source.droppableId === "column-3" || destination.droppableId === "column-3") {
-      return;
-    }
+    if (source.droppableId === "column-3" || destination.droppableId === "column-3") return;
 
     const sourceCol = boardData.columns[source.droppableId];
     const destCol = boardData.columns[destination.droppableId];
@@ -99,43 +85,10 @@ const App: React.FC = () => {
       columnId: Number(destCol.id.split("-")[1]),
     };
 
-    axios.put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${draggableId}`, updatedTask)
+    axios
+      .put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${draggableId}`, updatedTask)
       .catch(err => console.error("Failed to update task column", err));
   };
-
-  // Setup SignalR connection
-  useEffect(() => {
-    connection
-      .start()
-      .then(() => {
-        console.log("SignalR Connected");
-
-        connection.on("ReceiveTaskUpdate", (updatedTask) => {
-          const id = String(updatedTask.id);
-
-          setBoardData(prev => {
-            const newTasks = { ...prev.tasks, [id]: updatedTask };
-
-            const newColumns = { ...prev.columns };
-            for (const colId of Object.keys(newColumns)) {
-              newColumns[colId].taskIds = newColumns[colId].taskIds.filter(tid => tid !== id);
-            }
-
-            const colKey = `column-${updatedTask.columnId}`;
-            if (newColumns[colKey]) {
-              newColumns[colKey].taskIds.unshift(id);
-            }
-
-            return {
-              ...prev,
-              tasks: newTasks,
-              columns: newColumns,
-            };
-          });
-        });
-      })
-      .catch(err => console.error("SignalR connection error", err));
-  }, []);
 
   useEffect(() => {
     axios.get("https://kanban-backend-2vbh.onrender.com/api/tasks")
@@ -162,6 +115,61 @@ const App: React.FC = () => {
         });
       })
       .catch(err => console.error("Error fetching tasks", err));
+  }, []);
+
+  useEffect(() => {
+    connection
+      .start()
+      .then(() => {
+        console.log("SignalR Connected");
+
+        connection.on("TaskCreated", (newTask) => {
+          const id = String(newTask.id);
+          setBoardData(prev => {
+            const colKey = `column-${newTask.columnId}`;
+            return {
+              ...prev,
+              tasks: {
+                ...prev.tasks,
+                [id]: { id, title: newTask.title, isDone: newTask.isDone },
+              },
+              columns: {
+                ...prev.columns,
+                [colKey]: {
+                  ...prev.columns[colKey],
+                  taskIds: [id, ...prev.columns[colKey].taskIds],
+                },
+              },
+            };
+          });
+        });
+
+        connection.on("TaskUpdated", (updatedTask) => {
+          const id = String(updatedTask.id);
+          setBoardData(prev => {
+            const newTasks = { ...prev.tasks, [id]: updatedTask };
+            const newColumns = { ...prev.columns };
+            for (const colId of Object.keys(newColumns)) {
+              newColumns[colId].taskIds = newColumns[colId].taskIds.filter(tid => tid !== id);
+            }
+            const colKey = `column-${updatedTask.columnId}`;
+            if (newColumns[colKey]) newColumns[colKey].taskIds.unshift(id);
+
+            return {
+              ...prev,
+              tasks: newTasks,
+              columns: newColumns,
+            };
+          });
+        });
+      })
+      .catch(err => console.error("SignalR connection error", err));
+
+    return () => {
+      connection.off("TaskCreated");
+      connection.off("TaskUpdated");
+      connection.stop();
+    };
   }, []);
 
   return (
