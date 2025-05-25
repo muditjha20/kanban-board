@@ -1,0 +1,70 @@
+/* Auth.css */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: lightskyblue; 
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Centered auth box */
+.auth-container {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 2rem;
+  border-radius: 12px;
+  background-color: rgb(248, 248, 134); /* light yellow */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+/* Heading */
+.auth-container h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+/* Input fields */
+.auth-container input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+/* Buttons */
+.auth-container button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.auth-container button:hover {
+  background-color: #125ba8;
+}
+
+/* Link paragraph */
+.auth-container p {
+  margin-top: 1.2rem;
+  font-size: 0.95rem;
+}
+
+/* Link styling */
+.auth-container a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.auth-container a:hover {
+  text-decoration: underline;
+}
