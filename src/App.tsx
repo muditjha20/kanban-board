@@ -7,7 +7,6 @@ import TodoList from "./Components/TodoList";
 import InputField from "./Components/InputField";
 import { BoardData } from "./types";
 import axios from "axios";
-import { connection } from "./signalr";
 
 const App: React.FC = () => {
   const [taskTitle, setTaskTitle] = useState<string>("");
@@ -45,7 +44,11 @@ const App: React.FC = () => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
 
-    if (source.droppableId === "column-3" || destination.droppableId === "column-3") return;
+    if (
+      source.droppableId === "column-3" ||
+      destination.droppableId === "column-3"
+    )
+      return;
 
     const sourceCol = boardData.columns[source.droppableId];
     const destCol = boardData.columns[destination.droppableId];
@@ -55,7 +58,7 @@ const App: React.FC = () => {
       reordered.splice(source.index, 1);
       reordered.splice(destination.index, 0, draggableId);
 
-      setBoardData(prev => ({
+      setBoardData((prev) => ({
         ...prev,
         columns: {
           ...prev.columns,
@@ -69,7 +72,7 @@ const App: React.FC = () => {
       const to = [...destCol.taskIds];
       to.splice(destination.index, 0, draggableId);
 
-      setBoardData(prev => ({
+      setBoardData((prev) => ({
         ...prev,
         columns: {
           ...prev.columns,
@@ -86,13 +89,17 @@ const App: React.FC = () => {
     };
 
     axios
-      .put(`https://kanban-backend-2vbh.onrender.com/api/tasks/${draggableId}`, updatedTask)
-      .catch(err => console.error("Failed to update task column", err));
+      .put(
+        `https://kanban-backend-2vbh.onrender.com/api/tasks/${draggableId}`,
+        updatedTask
+      )
+      .catch((err) => console.error("Failed to update task column", err));
   };
 
   useEffect(() => {
-    axios.get("https://kanban-backend-2vbh.onrender.com/api/tasks")
-      .then(res => {
+    axios
+      .get("https://kanban-backend-2vbh.onrender.com/api/tasks")
+      .then((res) => {
         const tasks = res.data;
         const taskMap: BoardData["tasks"] = {};
         const colMap: BoardData["columns"] = {
@@ -114,69 +121,18 @@ const App: React.FC = () => {
           columnOrder: ["column-1", "column-2", "column-3"],
         });
       })
-      .catch(err => console.error("Error fetching tasks", err));
-  }, []);
-
-  useEffect(() => {
-    connection
-      .start()
-      .then(() => {
-        console.log("SignalR Connected");
-
-        connection.on("TaskCreated", (newTask) => {
-          const id = String(newTask.id);
-          setBoardData(prev => {
-            const colKey = `column-${newTask.columnId}`;
-            return {
-              ...prev,
-              tasks: {
-                ...prev.tasks,
-                [id]: { id, title: newTask.title, isDone: newTask.isDone },
-              },
-              columns: {
-                ...prev.columns,
-                [colKey]: {
-                  ...prev.columns[colKey],
-                  taskIds: [id, ...prev.columns[colKey].taskIds],
-                },
-              },
-            };
-          });
-        });
-
-        connection.on("TaskUpdated", (updatedTask) => {
-          const id = String(updatedTask.id);
-          setBoardData(prev => {
-            const newTasks = { ...prev.tasks, [id]: updatedTask };
-            const newColumns = { ...prev.columns };
-            for (const colId of Object.keys(newColumns)) {
-              newColumns[colId].taskIds = newColumns[colId].taskIds.filter(tid => tid !== id);
-            }
-            const colKey = `column-${updatedTask.columnId}`;
-            if (newColumns[colKey]) newColumns[colKey].taskIds.unshift(id);
-
-            return {
-              ...prev,
-              tasks: newTasks,
-              columns: newColumns,
-            };
-          });
-        });
-      })
-      .catch(err => console.error("SignalR connection error", err));
-
-    return () => {
-      connection.off("TaskCreated");
-      connection.off("TaskUpdated");
-      connection.stop();
-    };
+      .catch((err) => console.error("Error fetching tasks", err));
   }, []);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="App">
-        <span className="heading">TASKIFY</span>
-        <InputField todo={taskTitle} setTodo={setTaskTitle} handleAdd={handleAdd} />
+        <span className="heading">Kanban Board</span>
+        <InputField
+          todo={taskTitle}
+          setTodo={setTaskTitle}
+          handleAdd={handleAdd}
+        />
         <TodoList boardData={boardData} setBoardData={setBoardData} />
       </div>
     </DragDropContext>
