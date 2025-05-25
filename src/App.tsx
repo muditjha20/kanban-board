@@ -21,24 +21,97 @@ const App: React.FC = () => {
     columnOrder: ["column-1", "column-2", "column-3"],
   });
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!taskTitle.trim()) return;
+const handleAdd = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!taskTitle.trim()) return;
 
-    const task = {
-      title: taskTitle,
-      isDone: false,
-      columnId: 1,
-      description: "",
-      tags: "",
-      dueDate: null,
-    };
+  const tempId = Date.now().toString(); // temporary local ID
 
-    axios
-      .post("https://kanban-backend-2vbh.onrender.com/api/tasks", task)
-      .then(() => setTaskTitle(""))
-      .catch((err) => console.error("Error adding task", err));
+  const newTask = {
+    id: tempId,
+    title: taskTitle,
+    isDone: false,
   };
+
+  // Optimistically update UI
+  setBoardData((prev) => ({
+    ...prev,
+    tasks: {
+      ...prev.tasks,
+      [tempId]: newTask,
+    },
+    columns: {
+      ...prev.columns,
+      "column-1": {
+        ...prev.columns["column-1"],
+        taskIds: [tempId, ...prev.columns["column-1"].taskIds],
+      },
+    },
+  }));
+
+  setTaskTitle(""); // Clear input immediately
+
+  // Then post to backend
+  const payload = {
+    title: taskTitle,
+    isDone: false,
+    columnId: 1,
+    description: "",
+    tags: "",
+    dueDate: null,
+  };
+
+  axios
+    .post("https://kanban-backend-2vbh.onrender.com/api/tasks", payload)
+    .then((res) => {
+      const realTask = res.data;
+      const realId = String(realTask.id);
+
+      setBoardData((prev) => {
+        // Remove temp task, replace with real one
+        const { [tempId]: _, ...remainingTasks } = prev.tasks;
+
+        return {
+          ...prev,
+          tasks: {
+            ...remainingTasks,
+            [realId]: {
+              id: realId,
+              title: realTask.title,
+              isDone: false,
+            },
+          },
+          columns: {
+            ...prev.columns,
+            "column-1": {
+              ...prev.columns["column-1"],
+              taskIds: [realId, ...prev.columns["column-1"].taskIds.filter((id) => id !== tempId)],
+            },
+          },
+        };
+      });
+    })
+    .catch((err) => {
+      console.error("Error adding task", err);
+
+      // Rollback UI change on error
+      setBoardData((prev) => {
+        const { [tempId]: _, ...remainingTasks } = prev.tasks;
+        return {
+          ...prev,
+          tasks: remainingTasks,
+          columns: {
+            ...prev.columns,
+            "column-1": {
+              ...prev.columns["column-1"],
+              taskIds: prev.columns["column-1"].taskIds.filter((id) => id !== tempId),
+            },
+          },
+        };
+      });
+    });
+};
+
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
