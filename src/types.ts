@@ -12,6 +12,6 @@ export interface Task {
 
 export interface BoardData {
   tasks: { [taskId: string]: Task };
-  columns: { [columnId: string]: Column }; // ✅ This line is important
+  columns: { [columnId: string]: Column };
   columnOrder: string[];
 }
