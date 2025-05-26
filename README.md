@@ -2,7 +2,7 @@
 
 A modern, responsive **Kanban Task Management** web application built with **React** and **TypeScript**, featuring **Firebase Authentication** and drag-and-drop task management.
 
-This is the frontend for the full-stack Kanban board app. The backend is built with ASP.NET Core and hosted separately on Render.
+This is the frontend for the full-stack Kanban board app. The backend is built with ASP.NET Core and hosted separately on Render. Note that tasks may take a few seconds to load since Render takes some time to start up the backend.
 
 > 🔗 **Live App**: [kanban-board-xtt1.onrender.com](https://kanban-board-xtt1.onrender.com)  
 > 📦 **Backend Repo**: [kanban-backend](https://github.com/muditjha20/kanban-backend)
@@ -105,7 +105,7 @@ The app is deployed on [Render.com](https://render.com/). To ensure Google Login
 
 **Mudit Mayank Jha**  
 B.Sc. Computer Science @ The University of the West Indies  
-[GitHub](https://github.com/muditjha20) · [LinkedIn](https://linkedin.com/in/muditjha)
+[GitHub](https://github.com/muditjha20) · [LinkedIn](https://www.linkedin.com/in/mudit-mayank-jha-4b27b7203)
 
 ---
 
